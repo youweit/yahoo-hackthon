@@ -2,7 +2,6 @@ from app import app, db
 from flask import Flask, flash, jsonify, make_response, redirect, url_for, request, abort, render_template
 from flask.ext.sqlalchemy import SQLAlchemy
 from sqlalchemy import exc
-from flask.ext.httpauth import HTTPBasicAuth
 from models import User,Movie,Day
 from werkzeug import secure_filename
 import json
@@ -10,7 +9,6 @@ from random import choice
 import os
 import datetime
 import math
-import datetime
 
 
 @app.route('/api/register', methods = ['POST'])
@@ -36,16 +34,32 @@ def create_user():
 @app.route('/api/set_prefer_time', methods = ['POST'])
 def set_prefer_time():
     if(User.query.filter_by(uid = request.form['uid']).first() != None):
-        u = User.query.filter(User.uid == request.form['uid'])
-        u.update({
-            'hour': request.form['hour'],
-            'weekday': request.form['weekday'],
-            'longtitude': request.form['longtitude'],
-            'latitude' : request.form['latitude']
-        })
+        u = User.query.filter(User.uid == request.form['uid']).first()
+
+        movie = Movie.query.filter(Movie.week == u.weekday).first()
+        if(movie != None):
+            cancel_day = Day.query.filter(Day.hour == u.hour, Day.movie_id == movie.id).first()
+            if(cancel_day.people - 1 < 0):
+                cancel_day.people = 0
+            else:
+                cancel_day.people -= 1
+            pass
+
+        # u.update({
+        #     'hour': request.form['hour'],
+        #     'weekday': request.form['hour'],
+        #     'longtitude': request.form['longtitude'],
+        #     'latitude' : request.form['latitude']
+        # })
+
+        u.hour = request.form['hour']
+        u.weekday = request.form['weekday']
+        u.longtitude = request.form['longtitude']
+        u.latitude = request.form['latitude']
+        
 
         m = Movie.query.filter(Movie.week == request.form['weekday']).first()
-        day = Day.query.filter(Day.hour == request.form['hour'],Day.movie_id == m.id).first()
+        day = Day.query.filter(Day.hour == request.form['hour'], Day.movie_id == m.id).first()
 
         day.people += 1 #TODO -1
 
@@ -74,34 +88,35 @@ def get_movie():
     day_max = 0.0
     for i in range(7):
 
-        m = Movie.query.filter(Movie.week == (i + weekday)%7).first()
+        m = Movie.query.filter(Movie.week == (i + weekday+2)%7).first()
         days = Day.query.filter(Day.movie_id == m.id).all()
         
         for day in days:
             day_max = max(day_max,day.people)
             data = day.people
+            
             people_data.append(data)
-        
+        # print day_max
         for day in days:
             if(day_max == 0):
-                density_data.append(0)
+                density_data.append(0.0)
             else:
                 multipler = 9.0/day_max
                 den = round(day.people * multipler)
                 density_data.append(den)
-
-
+        day_max = 0.0    
 
     return jsonify( {'people': people_data,'density':density_data} ), 200
 
-@app.route('/api/check_notitfication', methods = ['POST'])
-def check_notitfication():
-    u = User.query.filter(User.uid == request.form['uid'])
-    follow = followers.query.filter(followers.follower_id == u.id or followers.followed_id == u.id)
-    if(follow != None):
-        return jsonify( {'people': "test"} ), 200
+
+@app.route('/api/check', methods = ['POST'])
+def check():
+    u = User.query.filter(User.uid == request.form['uid']).first()
+    followed = u.followed_buddy()
+    if(followed == None):
+        return jsonify( {'status': 'pending','hour':u.hour,'weekday':u.weekday} ), 200
     else:
-        pass
+        return jsonify( {'status': 'paired','user':u.serialize} ), 200
 
 @app.route('/api/populate', methods = ['GET'])
 def populate():
@@ -109,7 +124,6 @@ def populate():
         m = Movie(
             week = i
         )
-        
         for i in range(0,24,3):
             m.day.append(Day(
                 hour = i,
@@ -128,7 +142,8 @@ def random_buddy(mUser):
         for user in users:
             if(distance_on_unit_sphere(float(mUser.latitude), float(mUser.longtitude), float(user.latitude), float(user.longtitude)) < 15 and mUser.weekday == user.weekday and mUser.hour == user.hour):
                 user_list.append(user)
-                print user.name
+                #print user.name
+                
         if not user_list:
             print "is empty"
         else:
@@ -143,7 +158,7 @@ def random_buddy(mUser):
             print m
             day = Day.query.filter(Day.hour == mUser.hour,Day.movie_id == m.id).first()
             print mUser.hour
-            #day.people -= 2
+            day.people -= 2
 
             db.session.flush()
             db.session.commit()

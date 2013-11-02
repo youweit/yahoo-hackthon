@@ -12,11 +12,12 @@ class User(db.Model):
     name = db.Column(db.String(30))
     timestamp = db.Column(db.DateTime)
     uid = db.Column(db.String(40), primary_key = True)
-    count = db.Column(db.Integer)
+    count = db.Column(db.Integer,default = 1)
     weekday = db.Column(db.Integer, default = None);
     hour = db.Column(db.Integer, default = None);
     longtitude = db.Column(db.String(15))
     latitude  = db.Column(db.String(15))
+    score = db.Column(db.Integer, default = 0)
     ordered = db.Column(db.Integer, default=0)
     reg_id = db.Column(db.String(256))
 
@@ -43,12 +44,18 @@ class User(db.Model):
             
     def is_following(self, user):
         return self.followed.filter(followers.c.followed_id == user.id).count() > 0
+
+    def followed_buddy(self):
+        return User.query.filter(followers.c.followed_id == User.id).first()
      
     @property
     def serialize(self):
        return {
            'name' : self.name,
            'uid' : self.uid,
+           'score': self.score,
+           'count': self.count,
+           'timestamp': self.timestamp
        }
 
 class Movie(db.Model):
@@ -60,38 +67,8 @@ class Day(db.Model):
     id = db.Column(db.Integer, primary_key = True)
     hour = db.Column(db.Integer);
     people = db.Column(db.Integer);
+
     movie_id = db.Column(db.Integer, db.ForeignKey(Movie.id))
     movie = db.relationship('Movie', backref='day')
-
-
-# class Company(db.Model):
-    
-#     id = db.Column(db.Integer, primary_key = True)
-#     email = db.Column(db.String(120), unique = True)
-#     phone = db.Column(db.String(20), unique = True)
-#     name = db.Column(db.String(120), unique = True)
-#     description = db.Column(db.String(140))
-    
-    
-#     def __repr__(self):
-#         return '<Company %r>' % (self.name)
-
-#     @staticmethod
-#     def make_valid_name(name):
-#         return re.sub('[^a-zA-Z0-9_\.]', '', name)
-    
-#     @property
-#     def serialize(self):
-#        return {
-#            'id' : self.id,
-#            'name' : self.name,
-#            'email' : self.email,
-#            'phone' : self.phone,
-#            'description' : self.description        
-#        }
-    
-#     @property
-#     def serialize_many2many(self):
-#        return [ item.serialize for item in self.many2many]
 
 
