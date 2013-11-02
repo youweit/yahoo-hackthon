@@ -3,13 +3,15 @@ from flask import Flask, flash, jsonify, make_response, redirect, url_for, reque
 from flask.ext.sqlalchemy import SQLAlchemy
 from sqlalchemy import exc
 from flask.ext.httpauth import HTTPBasicAuth
-from models import User
+from models import User,Movie,Day
 from werkzeug import secure_filename
 import json
 from random import choice
 import os
+import datetime
 import math
 import datetime
+
 
 @app.route('/api/register', methods = ['POST'])
 def create_user():
@@ -34,11 +36,18 @@ def create_user():
 @app.route('/api/set_prefer_time', methods = ['POST'])
 def set_prefer_time():
     if(User.query.filter_by(uid = request.form['uid']).first() != None):
-        db.session.query(User).filter(User.uid == request.form['uid']).update({
-            'prefer_time' : request.form['prefer_time'],
-            'longtitude' : request.form['longtitude'],
+        u = User.query.filter(User.uid == request.form['uid'])
+        u.update({
+            'hour': request.form['hour'],
+            'weekday': request.form['weekday'],
+            'longtitude': request.form['longtitude'],
             'latitude' : request.form['latitude']
         })
+
+        m = Movie.query.filter(Movie.week == request.form['weekday']).first()
+        day = Day.query.filter(Day.hour == request.form['hour'],Day.movie_id == m.id).first()
+
+        day.people += 1 #TODO -1
 
         db.session.commit()
 
@@ -56,16 +65,47 @@ def get_buddy():
     else:
         return jsonify( { 'buddy_uid': 'none'} ), 200
 
-@app.route('/api/get_movie', methods = ['GET'])
+@app.route('/api/get_people', methods = ['GET'])
 def get_movie():
-    return jsonify( { 'movie': ['0' for i in range(56)]} ), 200
-    
+
+    weekday = datetime.datetime.today().weekday()-1
+    movie_data = []
+    for i in range(7):
+
+        m = Movie.query.filter(Movie.week == (i + weekday)%7).first()
+        days = Day.query.filter(Day.movie_id == m.id).all()
+        for day in days:
+            data = day.people
+            movie_data.append(data)
+        pass
+
+    return jsonify( {'people': movie_data} ), 200
+
+
+@app.route('/api/populate', methods = ['GET'])
+def populate():
+    for i in range(7):
+        m = Movie(
+            week = i
+        )
+        
+        for i in range(0,24,3):
+            m.day.append(Day(
+                hour = i,
+                people = 0
+            ))
+        db.session.add(m)
+        pass
+            
+    db.session.commit()
+    return jsonify( { 'status': 'successful'} ), 200
+
 def random_buddy(mUser):
     user_list = []
     if(mUser.ordered == 0):
-        users = User.query.filter(User.ordered == 0,User.id != mUser.id).all() #TODO filter out self
+        users = User.query.filter(User.ordered == 0,User.id != mUser.id).all()
         for user in users:
-            if(distance_on_unit_sphere(float(mUser.latitude), float(mUser.longtitude), float(user.latitude), float(user.longtitude)) < 15 and mUser.prefer_time == user.prefer_time):
+            if(distance_on_unit_sphere(float(mUser.latitude), float(mUser.longtitude), float(user.latitude), float(user.longtitude)) < 15 and mUser.weekday == user.weekday and mUser.hour == user.hour):
                 user_list.append(user)
                 print user.name
         if not user_list:
@@ -74,9 +114,15 @@ def random_buddy(mUser):
             luckyguy = choice(user_list)
 
             mUser.follow(luckyguy)
-           
             luckyguy.follow(mUser)
+
             mUser.ordered = luckyguy.ordered = 1
+
+            m = Movie.query.filter(Movie.week == mUser.weekday).first()
+            day = Day.query.filter(Day.hour == mUser.hour).first()
+            print day
+            #day.people -= 2
+
             db.session.flush()
             db.session.commit()
 

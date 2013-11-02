@@ -13,10 +13,12 @@ class User(db.Model):
     timestamp = db.Column(db.DateTime)
     uid = db.Column(db.String(40), primary_key = True)
     count = db.Column(db.Integer)
-    prefer_time = db.Column(db.String(14))
+    weekday = db.Column(db.Integer, default = None);
+    hour = db.Column(db.Integer, default = None);
     longtitude = db.Column(db.String(15))
     latitude  = db.Column(db.String(15))
     ordered = db.Column(db.Integer, default=0)
+    reg_id = db.Column(db.String(256))
 
     followed = db.relationship('User', 
         secondary = followers, 
@@ -47,18 +49,19 @@ class User(db.Model):
        return {
            'name' : self.name,
            'uid' : self.uid,
-           'prefer_time' : self.prefer_time
        }
 
 class Movie(db.Model):
     id = db.Column(db.Integer, primary_key = True)
-    sun = db.Column(db.String(14))
-    mon = db.Column(db.String(14))
-    tue = db.Column(db.String(14))
-    wed = db.Column(db.String(14))
-    thu = db.Column(db.String(14))
-    fri = db.Column(db.String(14))
-    sat = db.Column(db.String(14))
+    week = db.Column(db.Integer) #0
+
+class Day(db.Model):
+    __tablename__ = 'day'
+    id = db.Column(db.Integer, primary_key = True)
+    hour = db.Column(db.Integer);
+    people = db.Column(db.Integer);
+    movie_id = db.Column(db.Integer, db.ForeignKey(Movie.id))
+    movie = db.relationship('Movie', backref='day')
 
 
 # class Company(db.Model):
