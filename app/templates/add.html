@@ -1,0 +1,57 @@
+<!-- extend base layout -->
+{% extends "base.html" %}
+
+{% block content %}
+<h1>{{ ('Add Data') }}</h1>
+{% include 'flash.html' %}
+<div class="well">
+    <form class="form-horizontal" action="" method="post" name="edit">
+        {{form.hidden_tag()}}
+        <div class="control-group{% if form.errors.post %} error{% endif %}">
+            <label class="control-label" for="nickname">{{ ('Company name:') }}</label>
+            <div class="controls">
+                {{ form.nickname(maxlength = 64, class = "span4") }}
+                {% for error in form.errors.nickname %}
+                    <span class="help-inline">[{{error}}]</span><br>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="control-group{% if form.errors.post %} error{% endif %}">
+            <label class="control-label" for="about_me">{{ ('Description:') }}</label>
+            <div class="controls">
+                {{ form.about_me(cols = 64, rows = 4, class = "span4") }}
+                {% for error in form.errors.about_me %}
+                    <span class="help-inline">[{{error}}]</span><br>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <div class="control-group{% if form.errors.post %} error{% endif %}">
+            <label class="control-label" for="phone">{{ ('Phone:') }}</label>
+            <div class="controls">
+                {{ form.phone(cols = 64, rows = 4, class = "span4") }}
+                {% for error in form.errors.phone %}
+                    <span class="help-inline">[{{error}}]</span><br>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <div class="control-group{% if form.errors.post %} error{% endif %}">
+            <label class="control-label" for="email">{{ ('Email:') }}</label>
+            <div class="controls">
+                {{ form.email(cols = 64, rows = 4, class = "span4") }}
+                {% for error in form.errors.email %}
+                    <span class="help-inline">[{{error}}]</span><br>
+                {% endfor %}
+            </div>
+        </div>
+        <br></br>
+        <div class="control-group">
+            <div class="controls">
+                <input class="btn btn-primary" type="submit" value="{{ ('Add+') }}">
+            </div>
+        </div>
+    </form>
+</div>
+</form>
+{% endblock %}
