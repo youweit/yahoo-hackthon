@@ -35,7 +35,7 @@ def create_user():
 def set_prefer_time():
     if(User.query.filter_by(uid = request.form['uid']).first() != None):
         u = User.query.filter(User.uid == request.form['uid']).first()
-
+        #if(u.weekday == None or u.hour == None):
         movie = Movie.query.filter(Movie.week == u.weekday).first()
         if(movie != None):
             cancel_day = Day.query.filter(Day.hour == u.hour, Day.movie_id == movie.id).first()
@@ -61,7 +61,7 @@ def set_prefer_time():
         m = Movie.query.filter(Movie.week == request.form['weekday']).first()
         day = Day.query.filter(Day.hour == request.form['hour'], Day.movie_id == m.id).first()
 
-        day.people += 1 #TODO -1
+        day.people += 1
 
         db.session.commit()
 
@@ -79,8 +79,10 @@ def get_buddy():
     else:
         return jsonify( { 'buddy_uid': 'none'} ), 200
 
-@app.route('/api/get_people', methods = ['GET'])
+@app.route('/api/get_people', methods = ['POST'])
 def get_movie():
+    mUid = request.form['uid']
+    u = User.query.filter_by(uid = mUid).first()
 
     weekday = datetime.datetime.today().weekday()-1
     people_data = []
@@ -101,8 +103,11 @@ def get_movie():
             if(day_max == 0):
                 density_data.append(0.0)
             else:
+
                 multipler = 9.0/day_max
                 den = round(day.people * multipler)
+                if(u.weekday == i and u.hour == day.hour):
+                    den = 10
                 density_data.append(den)
         day_max = 0.0    
 
@@ -166,7 +171,7 @@ def random_buddy(mUser):
             return jsonify( luckyguy.serialize ), 200
         return jsonify( { 'error': 'nobody' } ), 200
     else:
-        return jsonify( { 'error': 'you are ordered' } ), 200
+        return jsonify( { 'error': 'already paired' } ), 200
 
 @app.errorhandler(400)
 def not_found(error):
