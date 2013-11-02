@@ -69,18 +69,39 @@ def get_buddy():
 def get_movie():
 
     weekday = datetime.datetime.today().weekday()-1
-    movie_data = []
+    people_data = []
+    density_data = []
+    day_max = 0.0
     for i in range(7):
 
         m = Movie.query.filter(Movie.week == (i + weekday)%7).first()
         days = Day.query.filter(Day.movie_id == m.id).all()
+        
         for day in days:
+            day_max = max(day_max,day.people)
             data = day.people
-            movie_data.append(data)
+            people_data.append(data)
+        
+        for day in days:
+            if(day_max == 0):
+                density_data.append(0)
+            else:
+                multipler = 9.0/day_max
+                den = round(day.people * multipler)
+                density_data.append(den)
+
+
+
+    return jsonify( {'people': people_data,'density':density_data} ), 200
+
+@app.route('/api/check_notitfication', methods = ['POST'])
+def check_notitfication():
+    u = User.query.filter(User.uid == request.form['uid'])
+    follow = followers.query.filter(followers.follower_id == u.id or followers.followed_id == u.id)
+    if(follow != None):
+        return jsonify( {'people': "test"} ), 200
+    else:
         pass
-
-    return jsonify( {'people': movie_data} ), 200
-
 
 @app.route('/api/populate', methods = ['GET'])
 def populate():
@@ -119,8 +140,9 @@ def random_buddy(mUser):
             mUser.ordered = luckyguy.ordered = 1
 
             m = Movie.query.filter(Movie.week == mUser.weekday).first()
-            day = Day.query.filter(Day.hour == mUser.hour).first()
-            print day
+            print m
+            day = Day.query.filter(Day.hour == mUser.hour,Day.movie_id == m.id).first()
+            print mUser.hour
             #day.people -= 2
 
             db.session.flush()
@@ -143,7 +165,6 @@ def not_found(error):
 @app.errorhandler(405)
 def not_found(error):
     return make_response(jsonify( { 'error': 'Method Not Allowed' } ), 405)
-
 
 def distance_on_unit_sphere(lat1, long1, lat2, long2):
     degrees_to_radians = math.pi/180.0
