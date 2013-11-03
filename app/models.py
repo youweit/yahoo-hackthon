@@ -51,8 +51,8 @@ class User(db.Model):
     @property
     def serialize(self):
        return {
-           'name' : self.name,
-           'uid' : self.uid,
+           'name': self.name,
+           'uid': self.uid,
            'score': self.score,
            'count': self.count,
            'timestamp': self.timestamp

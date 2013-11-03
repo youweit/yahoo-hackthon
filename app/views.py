@@ -35,6 +35,7 @@ def create_user():
 def set_prefer_time():
     if(User.query.filter_by(uid = request.form['uid']).first() != None):
         u = User.query.filter(User.uid == request.form['uid']).first()
+        u.ordered = 0
         #if(u.weekday == None or u.hour == None):
         movie = Movie.query.filter(Movie.week == u.weekday).first()
         if(movie != None):
@@ -108,6 +109,11 @@ def get_movie():
                 den = round(day.people * multipler)
                 if(u.weekday == i and u.hour == day.hour):
                     den = 10
+                    print u.ordered
+                    if(u.ordered == 1):
+                        den = 11
+                    pass
+
                 density_data.append(den)
         day_max = 0.0    
 
@@ -117,11 +123,11 @@ def get_movie():
 @app.route('/api/check', methods = ['POST'])
 def check():
     u = User.query.filter(User.uid == request.form['uid']).first()
-    followed = u.followed_buddy()
-    if(followed == None):
+    result = User.query.filter(User.weekday == u.weekday,User.hour == u.hour,User.uid !=u.uid).first()
+    if(result == None):
         return jsonify( {'status': 'pending','hour':u.hour,'weekday':u.weekday} ), 200
     else:
-        return jsonify( {'status': 'paired','user':u.serialize} ), 200
+        return jsonify( {'status': 'paired','user':result.serialize} ), 200
 
 @app.route('/api/populate', methods = ['GET'])
 def populate():
